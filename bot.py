@@ -531,8 +531,8 @@ def main():
     if BOT_TOKEN == "8562156715:AAGab991ySjzl6sOEae0CBkL9kDZlX3QmNc":
         print(
             "❗ BOT_TOKEN o'rnatilmagan. Muhit o'zgaruvchisi sifatida sozlang:\n"
-            "   export BOT_TOKEN='sizning_tokeningiz'\n"
-            "   python bot.py"
+            "   export BOT_TOKEN=''\n"
+            "   python bot.py"8562156715:AAGab991ySjzl6sOEae0CBkL9kDZlX3QmNc
         )
         return
 
