@@ -1,15 +1,6 @@
 """
 Ko'p funksiyali Video Downloader — Telegram Bot
 =================================================
-
-Funksiyalar:
-- Instagram, TikTok, YouTube Shorts linklarini qabul qiladi
-- Video VA rasm/karusel postlarni yuklab beradi
-- Til tanlash (O'zbek / Rus)
-- Foydalanuvchi statistikasi (nechta video yuklagani)
-- Sifat tanlash (HD / Past sifat)
-- Yuklanish progress-bar bilan ko'rsatiladi
-- Guruhlarda ham ishlaydi (BotFather'da privacy mode o'chirilishi kerak)
 """
 
 import os
@@ -41,7 +32,7 @@ import yt_dlp
 # SOZLAMALAR
 # ------------------------------------------------------------------
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8562156715:AAGab991ySjzl6sOEae0CBkL9kDZlX3QmNc")
+BOT_TOKEN = "8562156715:AAGab991ySjzl6sOEae0CBkL9kDZlX3QmNc"
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
 MAX_FILE_SIZE_MB = 50
 
@@ -71,7 +62,7 @@ TEXTS = {
         "choose_quality": "Sifatni tanlang:",
         "hd": "🎬 HD sifat",
         "sd": "📉 Past sifat (tezroq)",
-        "audio": "🎵 Musiqasini olish",
+        "audio": "🎵 Qo'shiqni yuklab olish",
         "downloading": "⏳ Yuklanmoqda...",
         "sending": "📤 Yuborilmoqda...",
         "done": "✅ Tayyor!",
@@ -110,7 +101,7 @@ def t(user_id: int, key: str) -> str:
 
 
 # ------------------------------------------------------------------
-# MA'LUMOTLARNI SAQLASH (til, statistika)
+# MA'LUMOTLARNI SAQLASH
 # ------------------------------------------------------------------
 
 def load_data() -> dict:
@@ -148,7 +139,7 @@ def increment_user_count(user_id: int, by: int = 1) -> None:
 
 
 # ------------------------------------------------------------------
-# TELEGRAM HANDLERLAR: START / TIL / STATISTIKA
+# HANDLERLAR
 # ------------------------------------------------------------------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -186,26 +177,13 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# ------------------------------------------------------------------
-# YORDAMCHI: progress-bar matni
-# ------------------------------------------------------------------
-
 def build_progress_bar(percent: float) -> str:
     filled = int(percent / 10)
     bar = "■" * filled + "□" * (10 - filled)
     return f"[{bar}] {percent:.0f}%"
 
 
-# ------------------------------------------------------------------
-# YUKLAB OLISH FUNKSIYASI (alohida thread'da ishlaydi)
-# ------------------------------------------------------------------
-
 def extract_and_download(url: str, output_dir: str, quality: str, progress_callback):
-    """
-    yt-dlp bilan ma'lumotni yuklab oladi. Karusel (bir nechta rasm/video)
-    bo'lsa, hammasini yuklaydi. Yuklangan fayllar ro'yxatini qaytaradi:
-    [{"path": ..., "is_video": True/False}, ...]
-    """
     if quality == "sd":
         fmt = "worst[ext=mp4]/worst"
     else:
@@ -227,14 +205,13 @@ def extract_and_download(url: str, output_dir: str, quality: str, progress_callb
         "format": fmt,
         "quiet": True,
         "no_warnings": True,
-        "noplaylist": False,  # karusel postlar uchun kerak
+        "noplaylist": False,
         "progress_hooks": [hook],
     }
 
     results = []
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
-
         entries = info.get("entries") if info.get("entries") is not None else [info]
 
         for entry in entries:
@@ -249,10 +226,6 @@ def extract_and_download(url: str, output_dir: str, quality: str, progress_callb
 
     return results
 
-
-# ------------------------------------------------------------------
-# MP3 YUKLAB OLISH FUNKSIYASI
-# ------------------------------------------------------------------
 
 def extract_and_download_audio(url: str, output_dir: str, progress_callback):
     output_template = os.path.join(output_dir, "%(id)s.%(ext)s")
@@ -289,10 +262,6 @@ def extract_and_download_audio(url: str, output_dir: str, progress_callback):
     return None
 
 
-# ------------------------------------------------------------------
-# XABAR HANDLER: LINK ANIQLASH VA SIFAT SO'RASH
-# ------------------------------------------------------------------
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text or ""
@@ -303,35 +272,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     url = match.group(1)
-
-    # Uzun URL'ni callback_data ichiga to'g'ridan-to'g'ri joylashtirib bo'lmaydi
-    # (Telegram cheklovi 64 bayt), shuning uchun vaqtinchalik ID orqali saqlaymiz.
     download_id = uuid.uuid4().hex[:8]
     context.bot_data.setdefault("pending", {})[download_id] = url
 
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(
-                    t(user_id, "hd"), callback_data=f"dl|{download_id}|hd"
-                ),
-                InlineKeyboardButton(
-                    t(user_id, "sd"), callback_data=f"dl|{download_id}|sd"
-                ),
+                InlineKeyboardButton(t(user_id, "hd"), callback_data=f"dl|{download_id}|hd"),
+                InlineKeyboardButton(t(user_id, "sd"), callback_data=f"dl|{download_id}|sd"),
             ],
             [
-                InlineKeyboardButton(
-                    t(user_id, "audio"), callback_data=f"dl|{download_id}|audio"
-                ),
+                InlineKeyboardButton(t(user_id, "audio"), callback_data=f"dl|{download_id}|audio"),
             ]
         ]
     )
     await update.message.reply_text(t(user_id, "choose_quality"), reply_markup=keyboard)
 
-
-# ------------------------------------------------------------------
-# CALLBACK HANDLER: TIL TANLASH VA SIFAT TANLASH
-# ------------------------------------------------------------------
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -360,10 +316,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await do_download(update, context, url, quality, query.message.chat_id, query.message.message_id)
 
-
-# ------------------------------------------------------------------
-# MP3 YUKLASH VA YUBORISH JARAYONI
-# ------------------------------------------------------------------
 
 async def do_download_audio(
     update: Update,
@@ -414,21 +366,16 @@ async def do_download_audio(
                 await context.bot.send_audio(chat_id=chat_id, audio=f)
 
             increment_user_count(user_id, by=1)
-
             await context.bot.edit_message_text(
                 chat_id=chat_id, message_id=status_message_id, text=t(user_id, "done")
             )
 
     except Exception as e:
-        logger.error(f"Audio yuklashda xatolik: {e}")
+        logger.error(f"Audio xatolik: {e}")
         await context.bot.edit_message_text(
             chat_id=chat_id, message_id=status_message_id, text=t(user_id, "unexpected_error")
         )
 
-
-# ------------------------------------------------------------------
-# YUKLASH VA YUBORISH JARAYONI (VIDEO / FOTO)
-# ------------------------------------------------------------------
 
 async def do_download(
     update: Update,
@@ -440,7 +387,6 @@ async def do_download(
 ):
     user_id = update.effective_user.id
     loop = asyncio.get_event_loop()
-
     last_percent = {"value": -100}
 
     def progress_callback(percent: float):
@@ -466,11 +412,7 @@ async def do_download(
                 )
                 return
 
-            valid_results = []
-            for r in results:
-                size_mb = os.path.getsize(r["path"]) / (1024 * 1024)
-                if size_mb <= MAX_FILE_SIZE_MB:
-                    valid_results.append(r)
+            valid_results = [r for r in results if os.path.getsize(r["path"]) / (1024 * 1024) <= MAX_FILE_SIZE_MB]
 
             if not valid_results:
                 await context.bot.edit_message_text(
@@ -506,36 +448,18 @@ async def do_download(
                         f.close()
 
             increment_user_count(user_id, by=len(valid_results))
-
             await context.bot.edit_message_text(
                 chat_id=chat_id, message_id=status_message_id, text=t(user_id, "done")
             )
 
-    except yt_dlp.utils.DownloadError as e:
-        logger.error(f"Yuklab olishda xatolik: {e}")
-        await context.bot.edit_message_text(
-            chat_id=chat_id, message_id=status_message_id, text=t(user_id, "error")
-        )
     except Exception as e:
-        logger.error(f"Kutilmagan xatolik: {e}")
+        logger.error(f"Xatolik: {e}")
         await context.bot.edit_message_text(
             chat_id=chat_id, message_id=status_message_id, text=t(user_id, "unexpected_error")
         )
 
 
-# ------------------------------------------------------------------
-# BOTNI ISHGA TUSHIRISH
-# ------------------------------------------------------------------
-
 def main():
-    if BOT_TOKEN == "8562156715:AAGab991ySjzl6sOEae0CBkL9kDZlX3QmNc":
-        print(
-            "❗ BOT_TOKEN o'rnatilmagan. Muhit o'zgaruvchisi sifatida sozlang:\n"
-            "   export BOT_TOKEN=''\n"
-            "   python bot.py"8562156715:AAGab991ySjzl6sOEae0CBkL9kDZlX3QmNc"
-        )
-        return
-
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
