@@ -3,7 +3,7 @@ import telebot
 import yt_dlp
 
 # Bot tokenini shu yerga yozasiz (yoki Render'dagi Environment Variables'dan o'qitisiz)
-TOKEN = "TOKENINGIZNI_SHU_YERGA_YOZING"
+TOKEN = "8562156715:AAE7YlQ--LVssZpwDSutJlVCRwpvZCK6E4s"
 bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(commands=['start', 'help'])
