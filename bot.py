@@ -3,7 +3,8 @@ import telebot
 import yt_dlp
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-TOKEN = "8562156715:AAFLtwEHNodfkEsOFhQG0ACBjdEDHtOI_Hw"
+# Tokeningizni qo'shtirnoq ichiga yozing (masalan: "123456:ABC-DEF...")
+TOKEN = "8562156715:AAEnhSYonAKelXlzQtKsHtyVjUhH10A3awk"
 bot = telebot.TeleBot(TOKEN)
 
 # Botning user nomini avtomatik aniqlab olamiz
@@ -12,26 +13,39 @@ try:
 except Exception:
     BOT_USERNAME = "bot_ingiz"
 
-# 1. Start buyrug'i
+# 1. Start buyrug'i (Asosiy menyu va ko'rsatmalar)
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     bot.reply_to(
         message, 
-        "Salom! 👋\n"
-        "Menga Instagram'dan **video** yoki **rasm** havolasini yuboring.\n"
-        "Men uni tezda topib, quyidagi imkoniyatlarni taqdim etaman:\n"
-        "• Videoni yuklab olish 📥\n"
-        "• Musiqasini ajratib olish 🎵\n\n"
-        f"🤖 Bot: @{BOT_USERNAME}"
+        f"🔥 Assalomu alaykum.\n"
+        f"@{BOT_USERNAME} ga xush kelibsiz.\n\n"
+        "Bot orqali quyidagilarni yuklab olishingiz mumkin:\n\n"
+        "• **Instagram** - post, reels va IGTV\n"
+        "• **TikTok** - suv belgisiz video\n"
+        "• **YouTube** - videolar va shorts\n"
+        "• **Snapchat** - suv belgisiz video\n"
+        "• **Likee** - suv belgisiz video\n"
+        "• **Pinterest** - video va rasmlar\n"
+        "• **Threads** - video va rasmlar\n\n"
+        "📥 Yuklab olmoqchi bo'lgan media havolasini yuboring!\n\n"
+        f"🤖 Bot: @{BOT_USERNAME}",
+        parse_mode="Markdown"
     )
 
-# 2. Instagram havolalarini tutib olish
-@bot.message_handler(func=lambda message: "instagram.com" in message.text)
-def handle_instagram(message):
+# 2. Qo'llab-quvvatlanadigan platformalar havolalarini tutib olish
+SUPPORTED_DOMAINS = [
+    "instagram.com", "tiktok.com", "youtu.be", "youtube.com", 
+    "snapchat.com", "likee.video", "pinterest.com", "pin.it", "threads.net"
+]
+
+@bot.message_handler(func=lambda message: any(domain in message.text for domain in SUPPORTED_DOMAINS))
+def handle_media(message):
     url = message.text.strip()
-    sent_msg = bot.reply_to(message, "⚡️ Ma'lumotlar tahlil qilinmoqda...")
+    sent_msg = bot.reply_to(message, "⚡️ Ma'lumotlar tahlil qilinmoqda, biroz kuting...")
     
     try:
+        # yt-dlp orqali tezkor tahlil qilish
         ydl_opts = {'quiet': True, 'format': 'best[ext=mp4]/best'}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -42,17 +56,18 @@ def handle_instagram(message):
             media_url = info.get('url')
             is_video = info.get('ext') in ['mp4', 'webm'] or info.get('duration')
             
-            if not is_video:
-                # Agar rasm bo'lsa
+            # Agar bu rasm bo'lsa (Pinterest / Instagram / Threads rasmlari)
+            if not is_video and info.get('thumbnail'):
+                photo_url = media_url or info.get('thumbnail')
                 bot.send_photo(
                     message.chat.id, 
-                    media_url, 
-                    caption=f"📸 Instagram'dan rasm topildi!\n\n@{BOT_USERNAME}"
+                    photo_url, 
+                    caption=f"📸 Rasm muvaffaqiyatli topildi!\n\n@{BOT_USERNAME}"
                 )
                 bot.delete_message(message.chat.id, sent_msg.message_id)
                 return
 
-        # Agar video bo'lsa, tugmalar chiqaramiz
+        # Agar video bo'lsa, foydalanuvchiga tugmalar chiqaramiz
         markup = InlineKeyboardMarkup(row_width=2)
         markup.add(
             InlineKeyboardButton("📥 Videoni yuklash", callback_data=f"vid_{message.id}"),
@@ -60,20 +75,22 @@ def handle_instagram(message):
         )
         
         bot.edit_message_text(
-            "✅ Video tayyor! Kerakli amalni tanlang:", 
+            "✅ Media tayyor! Kerakli amalni tanlang:", 
             message.chat.id, 
             sent_msg.message_id, 
             reply_markup=markup
         )
         
+        # Havolani vaqtinchalik xotirada saqlaymiz
         global_media_cache[message.chat.id] = media_url
 
     except Exception as e:
-        bot.edit_message_text(f"❌ Xatolik yuz berdi: {e}", message.chat.id, sent_msg.message_id)
+        bot.edit_message_text(f"❌ Xatolik yuz berdi: Havola noto'g'ri yoki yopiq profil bo'lishi mumkin.", message.chat.id, sent_msg.message_id)
 
+# Vaqtinchalik xotira lug'ati
 global_media_cache = {}
 
-# 3. Tugmalar bosilgandagi amallar
+# 3. Tugmalar bosilgandagi amallar (Video yoki Audio jo'natish)
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     chat_id = call.message.chat.id
@@ -94,6 +111,7 @@ def callback_query(call):
     elif call.data.startswith("aud_"):
         bot.answer_callback_query(call.id, "Musiqasi ajratib olinmoqda...")
         try:
+            # yt-dlp va ffmpeg yordamida audioni mp3 qilish
             audio_opts = {
                 'format': 'bestaudio/best',
                 'outtmpl': 'temp_audio.%(ext)s',
@@ -106,14 +124,15 @@ def callback_query(call):
                 bot.send_audio(
                     chat_id, 
                     audio, 
-                    title="Instagram Audio", 
+                    title="Audio Track", 
                     caption=f"🎵 @{BOT_USERNAME}"
                 )
             os.remove('temp_audio.mp3')
         except Exception as e:
-            bot.send_message(chat_id, f"Musiqani olishda xatolik: {e}")
+            bot.send_message(chat_id, f"Musiqani olishda xatolik yuz berdi: {e}")
 
 bot.polling(none_stop=True)
+
 
 
 
