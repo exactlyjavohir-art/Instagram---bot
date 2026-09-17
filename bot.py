@@ -532,7 +532,7 @@ def main():
         print(
             "❗ BOT_TOKEN o'rnatilmagan. Muhit o'zgaruvchisi sifatida sozlang:\n"
             "   export BOT_TOKEN=''\n"
-            "   python bot.py"8562156715:AAGab991ySjzl6sOEae0CBkL9kDZlX3QmNc
+            "   python bot.py"8562156715:AAGab991ySjzl6sOEae0CBkL9kDZlX3QmNc"
         )
         return
 
