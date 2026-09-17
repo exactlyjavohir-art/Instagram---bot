@@ -3,7 +3,7 @@ import telebot
 import yt_dlp
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-TOKEN = "TOKENINGIZNI_SHUYERGA_YOZING"
+TOKEN = "8562156715:AAFLtwEHNodfkEsOFhQG0ACBjdEDHtOI_Hw"
 bot = telebot.TeleBot(TOKEN)
 
 # Botning user nomini avtomatik aniqlab olamiz
