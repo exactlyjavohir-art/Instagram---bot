@@ -2,9 +2,8 @@ import os
 import telebot
 import yt_dlp
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from moviepy.editor import VideoFileClip
 
-TOKEN = "8562156715:AAFLtwEHNodfkEsOFhQG0ACBjdEDHtOI_Hw"
+TOKEN = "TOKENINGIZNI_SHUYERGA_YOZING"
 bot = telebot.TeleBot(TOKEN)
 
 # Botning user nomini avtomatik aniqlab olamiz
@@ -22,8 +21,7 @@ def send_welcome(message):
         "Menga Instagram'dan **video** yoki **rasm** havolasini yuboring.\n"
         "Men uni tezda topib, quyidagi imkoniyatlarni taqdim etaman:\n"
         "• Videoni yuklab olish 📥\n"
-        "• Musiqasini ajratib olish 🎵\n"
-        "• Yumaloq videoga aylantirish 🟢\n\n"
+        "• Musiqasini ajratib olish 🎵\n\n"
         f"🤖 Bot: @{BOT_USERNAME}"
     )
 
@@ -45,7 +43,7 @@ def handle_instagram(message):
             is_video = info.get('ext') in ['mp4', 'webm'] or info.get('duration')
             
             if not is_video:
-                # Agar rasm bo'lsa, tagiga username yozamiz
+                # Agar rasm bo'lsa
                 bot.send_photo(
                     message.chat.id, 
                     media_url, 
@@ -58,8 +56,7 @@ def handle_instagram(message):
         markup = InlineKeyboardMarkup(row_width=2)
         markup.add(
             InlineKeyboardButton("📥 Videoni yuklash", callback_data=f"vid_{message.id}"),
-            InlineKeyboardButton("🎵 Musiqasini olish", callback_data=f"aud_{message.id}"),
-            InlineKeyboardButton("🟢 Yumaloq video", callback_data=f"round_{message.id}")
+            InlineKeyboardButton("🎵 Musiqasini olish", callback_data=f"aud_{message.id}")
         )
         
         bot.edit_message_text(
@@ -88,7 +85,6 @@ def callback_query(call):
 
     if call.data.startswith("vid_"):
         bot.answer_callback_query(call.id, "Video yuborilmoqda...")
-        # Videoning tagiga bot username'i yoziladi
         bot.send_video(
             chat_id, 
             media_url, 
@@ -107,7 +103,6 @@ def callback_query(call):
                 ydl.download([media_url])
             
             with open('temp_audio.mp3', 'rb') as audio:
-                # Audioning tagiga ham username yoziladi
                 bot.send_audio(
                     chat_id, 
                     audio, 
@@ -118,34 +113,7 @@ def callback_query(call):
         except Exception as e:
             bot.send_message(chat_id, f"Musiqani olishda xatolik: {e}")
 
-    elif call.data.startswith("round_"):
-        bot.answer_callback_query(call.id, "Yumaloq videoga aylantirilmoqda...")
-        try:
-            input_file = 'temp_input.mp4'
-            output_file = 'temp_round.mp4'
-            
-            import urllib.request
-            urllib.request.urlretrieve(media_url, input_file)
-            
-            clip = VideoFileClip(input_file)
-            w, h = clip.size
-            min_dim = min(w, h)
-            clip_cropped = clip.crop(x_center=w/2, y_center=h/2, width=min_dim, height=min_dim)
-            clip_cropped.write_videofile(output_file, codec='libx264', audio_codec='aac', fps=24)
-            
-            with open(output_file, 'rb') as video_note:
-                bot.send_video_note(chat_id, video_note)
-            
-            # Telegram talabiga ko'ra krujkalarga matn yozib bo'lmaydi, shuning uchun pastiga username yuboramiz
-            bot.send_message(chat_id, f"🟢 @{BOT_USERNAME}")
-            
-            clip.close()
-            clip_cropped.close()
-            os.remove(input_file)
-            os.remove(output_file)
-        except Exception as e:
-            bot.send_message(chat_id, f"Yumaloq video qilishda xatolik: {e}")
-
 bot.polling(none_stop=True)
+
 
 
