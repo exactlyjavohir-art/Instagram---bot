@@ -11,7 +11,7 @@ bot = telebot.TeleBot(TOKEN)
 try:
     BOT_USERNAME = bot.get_me().username
 except Exception:
-    BOT_USERNAME = "bot_ingiz"
+    BOT_USERNAME = "ReelSaverUz_bot"
 
 # 1. Start buyrug'i (Asosiy menyu va ko'rsatmalar)
 @bot.message_handler(commands=['start'])
